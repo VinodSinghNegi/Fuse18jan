@@ -22,34 +22,12 @@ class Schedule extends Component {
       {
         name: "Vinod",
         image: "assets/images/avatars/Harper.jpg",
-        data: [
-          {
-            from: new Date(2020, 1, 14, 10, 0, 0, 0),
-            to: new Date(2020, 1, 14, 12, 0, 0, 0)
-          },
-          {
-            from: new Date(2020, 1, 14, 12, 0, 0, 0),
-            to: new Date(2020, 1, 14, 14, 0, 0, 0)
-          },
-          {
-            from: new Date(2020, 1, 15, 10, 0, 0, 0),
-            to: new Date(2020, 1, 15, 12, 0, 0, 0)
-          },
-          {
-            from: new Date(2020, 1, 16, 10, 0, 0, 0),
-            to: new Date(2020, 1, 16, 12, 0, 0, 0)
-          }
-        ]
+        data: []
       },
       {
         name: "Rahul",
         image: "assets/images/avatars/Velazquez.jpg",
-        data: [
-          {
-            from: new Date(2020, 1, 13, 10, 0, 0, 0),
-            to: new Date(2020, 1, 13, 12, 0, 0, 0)
-          }
-        ]
+        data: []
       }
     ],
     open: false,
@@ -81,15 +59,12 @@ class Schedule extends Component {
       todaysYear: year
     });
 
-    const daysInMonth = new Date(
-      this.state.year,
-      this.state.month + 1,
-      0
-    ).getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     await this.setState({ daysInMonth: daysInMonth });
   };
 
+  //////////// Methods /////////////////////////
   forwardDate = async () => {
     await this.setState({ showdate: this.state.showdate + 7 });
 
@@ -111,6 +86,7 @@ class Schedule extends Component {
       await this.setState({ daysInMonth: daysInMonth });
     }
   };
+  //////////////////////////////////////////////////////
   backwardDate = async () => {
     await this.setState({ showdate: this.state.showdate - 7 });
 
@@ -119,6 +95,7 @@ class Schedule extends Component {
       if (this.state.month < 0) {
         await this.setState({ month: 11, year: this.state.year - 1 });
       }
+
       const daysInPrevMonth = new Date(
         this.state.year,
         this.state.month + 1,
@@ -131,6 +108,7 @@ class Schedule extends Component {
       });
     }
   };
+  //////////////////////////////////////////////////////
   date = j => {
     let sday = this.state.showdate - this.state.showday + j;
     if (sday > this.state.daysInMonth) {
@@ -147,6 +125,7 @@ class Schedule extends Component {
     }
     return sday;
   };
+  //////////////////////////////////////////////////////
   showToday = () => {
     const date = new Date();
     const year = date.getFullYear();
@@ -154,23 +133,43 @@ class Schedule extends Component {
     const currentDate = date.getDate();
     this.setState({ showdate: currentDate, month: month, year: year });
   };
-
+  //////////////////////////////////////////////////////
   handleOpen = () => {
     this.setState({ open: !this.state.open });
   };
+  //////////////////////////////////////////////////////
   createEvent = async data => {
-  console.log(data);
-    await this.setState({userdata:this.state.userdata.map(E=>{
-      if(E.name===data.name){
-      E.data=data.event
-        return E
+    let getuser = [];
+    this.state.userdata.map(user => {
+      if (user.name === data.name) {
+        getuser = user.data;
       }
-      return E
-    })})
-  console.log(this.state.userdata);
-  
+      return user;
+    });
+    getuser = getuser.filter(user => {
+      let prevShift = user.from;
+      let newShift = data.event[0].from;
+      if (
+        prevShift.getDate() === newShift.getDate() &&
+        prevShift.getMonth() === newShift.getMonth() &&
+        prevShift.getFullYear() === newShift.getFullYear()
+      ) {
+        return false;
+      }
+      return true;
+    });
+    getuser = [...getuser, ...data.event];
+    await this.setState({
+      userdata: this.state.userdata.map(user => {
+        if (user.name === data.name) {
+          user.data = getuser;
+          return user;
+        }
+        return user;
+      })
+    });
   };
-
+  //////////////////////////////////////////////////////
   clickedCell = async (user, day) => {
     const clickedDate = this.date(day);
     var event = user.data.filter(shift => {
@@ -187,20 +186,38 @@ class Schedule extends Component {
   };
 
   render() {
+    //////// Destructering /////////////////
+    const {
+      weekdays,
+      monthName,
+      userdata,
+      open,
+      shiftData,
+      todaysDate,
+      todaysMonth,
+      todaysYear,
+      showdate,
+      showday,
+      daysInMonth,
+      month,
+      year
+    } = this.state;
+
+    /////////////////// Return /////////////////////////
     return (
       <React.Fragment>
-        {this.state.open && (
+        {open && (
           <EventModal
             createEvent={this.createEvent}
-            data={this.state.shiftData}
-            open={this.state.open}
+            data={shiftData}
+            open={open}
             closeButton={this.handleOpen}
           />
         )}
         <div>
           <div style={{ display: "flex", justifyContent: "center" }}>
-            {this.state.monthName[this.state.month]}
-            &nbsp;{this.state.year}
+            {monthName[month]}
+            &nbsp;{year}
           </div>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <Button variant="contained" onClick={this.backwardDate}>
@@ -236,7 +253,7 @@ class Schedule extends Component {
               <td style={{ display: "flex", justifyContent: "center" }}>
                 STAFF
               </td>
-              {this.state.weekdays.map((day, j) => (
+              {weekdays.map((day, j) => (
                 <th
                   key={j}
                   style={{
@@ -246,22 +263,23 @@ class Schedule extends Component {
                 >
                   {day}
                   <br />
-                  {this.state.todaysDate === this.date(j) &&
-                  this.state.month === this.state.todaysMonth &&
-                  this.state.year === this.state.todaysYear ? (
+                  {todaysDate === this.date(j) &&
+                  month === todaysMonth &&
+                  year === todaysYear ? (
                     <div style={{ background: "grey" }}>{this.date(j)}</div>
                   ) : (
                     <div>{this.date(j)}</div>
                   )}
-                  {/* {this.state.monthName[this.state.month]} */}
+                  {/* {monthName[month]} */}
                 </th>
               ))}
             </tr>
             {/*///////////////////////////*/}
 
-            {this.state.userdata.map((user, i) => (
+            {userdata.map((user, i) => (
               <tr key={i}>
                 <td
+                  key={i}
                   style={{
                     // display: "flex",
                     justifyContent: "center",
@@ -281,9 +299,9 @@ class Schedule extends Component {
                   />
                   {user.name}
                 </td>
-                {this.state.weekdays.map((day, k) => (
+                {weekdays.map((day, k) => (
                   <td
-                    key={day}
+                    key={k}
                     style={{
                       justifyContent: "center",
                       border: "1px solid black",
@@ -296,7 +314,9 @@ class Schedule extends Component {
                   >
                     {user.data.length > 0 &&
                       user.data.map(shift =>
-                        shift.from.getDate() === this.date(k) ? (
+                        shift.from.getDate() === this.date(k) &&
+                        shift.from.getMonth() === month &&
+                        shift.from.getFullYear() === year ? (
                           <div
                             style={{
                               display: "flex",
@@ -305,7 +325,8 @@ class Schedule extends Component {
                               background: "cyan"
                             }}
                           >
-                            {shift.from.getHours()}-{shift.to.getHours()}
+                            {shift.from.getHours()}:{shift.from.getMinutes()}-
+                            {shift.to.getHours()}:{shift.to.getMinutes()}
                           </div>
                         ) : (
                           ""

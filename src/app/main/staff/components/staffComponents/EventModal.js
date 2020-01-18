@@ -11,42 +11,66 @@ import DateFnsUtils from "@date-io/date-fns";
 class EventModal extends Component {
   state = {
     event: [],
+    length: 0,
     shiftFrom: new Date(),
     shiftTo: new Date(),
     displayDate: new Date(),
     flag: false
   };
+  componentDidMount = async () => {
+    const { date, month, year, event } = this.props.data;
+    await this.setState({
+      shiftFrom: new Date(year, month, date),
+      shiftTo: new Date(year, month, date),
+      displayDate: new Date(year, month, date),
+      length: event.length
+    });
 
-  shiftTimeFrom = async time => {
-    await this.setState({ shiftFrom: time });
-  };
-
-  shiftTimeTo = async time => {
-    await this.setState({ shiftTo: time });
-    var newEvent = {
-      from: this.state.shiftFrom,
-      to: this.state.shiftTo
-    };
-    await this.setState({ event: [...this.state.event, newEvent] });
-  };
-
-  render() {
-    const { name, date, month, year, event } = this.props.data;
-    if (event.length > 0 && this.state.flag === false) {
-      this.setState({
+    if (event.length > 0) {
+      await this.setState({
         event: event,
-        displayDate: event[0].from,
-        flag: true
-      });
-    } else if (!event.length > 0 && this.state.flag === false) {
-      this.setState({
-        shiftFrom: new Date(year, month, date, 0, 0, 0, 0),
-        shiftTo: new Date(year, month, date, 0, 0, 0, 0),
-        displayDate: new Date(year, month, date, 0, 0, 0, 0),
-        flag: true
+        displayDate: event[0].from
       });
     }
-    const onSaveShift = () => {
+  };
+  shiftTimeFrom = () => {};
+  shiftTimeTo = () => {};
+
+  editPrevShiftFrom = async (time, i) => {
+    await this.setState({
+      event: this.state.event.map((shift, j) => {
+        if (i === j) {
+          shift.from = time;
+          return shift;
+        }
+        return shift;
+      })
+    });
+  };
+  editPrevShiftTo = async (time, i) => {
+    await this.setState({
+      event: this.state.event.map((shift, j) => {
+        if (i === j) {
+          shift.to = time;
+          return shift;
+        }
+        return shift;
+      })
+    });
+  };
+
+  createNewEvent = async () => {
+    await this.setState({
+      event: [
+        ...this.state.event,
+        { from: this.state.displayDate, to: this.state.displayDate }
+      ]
+    });
+  };
+  render() {
+    const { name, date, month, year } = this.props.data;
+
+    const onSaveShift = async () => {
       var data = {
         name: name,
         date: date,
@@ -86,7 +110,11 @@ class EventModal extends Component {
               }}
             >
               <div>
-                <p>Edit Shift for {name}</p>
+                <p>
+                  {this.state.event.length > 0 ? "Edit" : "Add"}&nbsp;Shift
+                  for&nbsp;
+                  {name}
+                </p>
                 <p>
                   {this.state.displayDate.getDate()}-
                   {this.state.displayDate.getMonth() + 1}-
@@ -107,65 +135,44 @@ class EventModal extends Component {
               </Button>
             </div>
             <div className="max-w-md p-5">
-              {this.state.event.length > 0 ? (
-                this.state.event.map(event => (
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardTimePicker
-                      margin="normal"
-                      id="time-picker"
-                      label="SHIFT START"
-                      value={event.from}
-                      onChange={this.shiftTimeFrom}
-                      KeyboardButtonProps={{
-                        "aria-label": "change time"
-                      }}
-                    />
+              {this.state.event.length > 0
+                ? this.state.event.map((event, i) => (
+                    <MuiPickersUtilsProvider utils={DateFnsUtils} key={i}>
+                      <KeyboardTimePicker
+                        margin="normal"
+                        id="time-picker"
+                        label="SHIFT START"
+                        inputVariant="outlined"
+                        value={event.from}
+                        onChange={this.shiftTimeFrom}
+                        onAccept={time => this.editPrevShiftFrom(time, i)}
+                        KeyboardButtonProps={{
+                          "aria-label": "change time"
+                        }}
+                      />
 
-                    <KeyboardTimePicker
-                      margin="normal"
-                      id="time-picker"
-                      label="SHIFT END"
-                      value={event.to}
-                      onChange={this.shiftTimeTo}
-                      KeyboardButtonProps={{
-                        "aria-label": "change time"
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                ))
-              ) : (
-                <>
-                  <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                    <KeyboardTimePicker
-                      margin="normal"
-                      id="time-picker"
-                      label="SHIFT START"
-                      value={this.state.shiftFrom}
-                      onChange={this.shiftTimeFrom}
-                      KeyboardButtonProps={{
-                        "aria-label": "change time"
-                      }}
-                    />
-
-                    <KeyboardTimePicker
-                      margin="normal"
-                      id="time-picker"
-                      label="SHIFT END"
-                      value={this.state.shiftTo}
-                      onChange={this.shiftTimeTo}
-                      KeyboardButtonProps={{
-                        "aria-label": "change time"
-                      }}
-                    />
-                  </MuiPickersUtilsProvider>
-                </>
-              )}
+                      <KeyboardTimePicker
+                        margin="normal"
+                        id="time-picker"
+                        label="SHIFT END"
+                        inputVariant="outlined"
+                        value={event.to}
+                        onChange={this.shiftTimeTo}
+                        onAccept={time => this.editPrevShiftTo(time, i)}
+                        KeyboardButtonProps={{
+                          "aria-label": "change time"
+                        }}
+                      />
+                    </MuiPickersUtilsProvider>
+                  ))
+                : ""}
             </div>
+
             <Button
               variant="contained"
               className={"m-10"}
               color="primary"
-              onClick={this.props.closeButton}
+              onClick={this.createNewEvent}
             >
               Add Shift
             </Button>
@@ -179,6 +186,7 @@ class EventModal extends Component {
               </Button>
 
               <Button
+                disabled={this.state.event.length > 0 ? false : true}
                 variant="contained"
                 color="primary"
                 className={"m-10"}
