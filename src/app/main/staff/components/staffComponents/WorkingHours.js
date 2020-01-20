@@ -20,26 +20,26 @@ class Schedule extends Component {
     ],
     userdata: [
       {
-        name: "Vinod",
+        name: "Harper",
         image: "assets/images/avatars/Harper.jpg",
         data: []
       },
       {
-        name: "Rahul",
+        name: "Velaz",
         image: "assets/images/avatars/Velazquez.jpg",
         data: []
       }
     ],
     open: false,
     shiftData: {},
-    todaysDate: 0,
-    todaysMonth: 0,
-    todaysYear: 0,
-    showdate: 1,
-    showday: 0,
-    daysInMonth: 0,
-    month: 0,
-    year: 0
+    todaysDate: null,
+    todaysMonth: null,
+    todaysYear: null,
+    showdate: null,
+    showday: null,
+    daysInMonth: null,
+    month: null,
+    year: null
   };
   componentDidMount = async () => {
     const date = new Date();
@@ -110,79 +110,113 @@ class Schedule extends Component {
   };
   //////////////////////////////////////////////////////
   date = j => {
-    let sday = this.state.showdate - this.state.showday + j;
-    if (sday > this.state.daysInMonth) {
-      return sday - this.state.daysInMonth;
-    }
-    if (sday < 1) {
-      const daysInPrevMonth = new Date(
-        this.state.year,
-        this.state.month,
-        0
-      ).getDate();
+    if (this.state.showdate) {
+      var date = this.state.showdate - this.state.showday + j;
+      var month = this.state.month;
+      var year = this.state.year;
 
-      return sday + daysInPrevMonth;
+      if (this.state.daysInMonth && date > this.state.daysInMonth) {
+        if (month === 11) {
+          month = -1;
+        }
+        return {
+          date: date - this.state.daysInMonth,
+          month: month + 1,
+          year
+        };
+      }
+      if (date < 1) {
+        const daysInPrevMonth = new Date(
+          this.state.year,
+          this.state.month
+        ).getDate();
+
+        return { date: date + daysInPrevMonth, month: month - 1, year };
+      }
+
+      return { date, month, year };
     }
-    return sday;
   };
   //////////////////////////////////////////////////////
-  showToday = () => {
+  showToday = async () => {
     const date = new Date();
     const year = date.getFullYear();
     const month = date.getMonth();
     const currentDate = date.getDate();
-    this.setState({ showdate: currentDate, month: month, year: year });
+    await this.setState({ showdate: currentDate, month: month, year: year });
   };
   //////////////////////////////////////////////////////
-  handleOpen = () => {
-    this.setState({ open: !this.state.open });
+  handleOpen = async () => {
+    await this.setState({ open: !this.state.open });
   };
   //////////////////////////////////////////////////////
   createEvent = async data => {
     let getuser = [];
     this.state.userdata.map(user => {
       if (user.name === data.name) {
-        getuser = user.data;
+        return (getuser = user.data);
       }
-      return user;
     });
-    getuser = getuser.filter(user => {
-      let prevShift = user.from;
-      let newShift = data.event[0].from;
-      if (
-        prevShift.getDate() === newShift.getDate() &&
-        prevShift.getMonth() === newShift.getMonth() &&
-        prevShift.getFullYear() === newShift.getFullYear()
-      ) {
-        return false;
-      }
-      return true;
-    });
-    getuser = [...getuser, ...data.event];
-    await this.setState({
-      userdata: this.state.userdata.map(user => {
-        if (user.name === data.name) {
-          user.data = getuser;
-          return user;
+    if (data.event.length > 0) {
+      getuser = getuser.filter(user => {
+        let prevShift = user.from;
+        let newShift = data.event[0].from;
+        if (
+          prevShift.getDate() === newShift.getDate() &&
+          prevShift.getMonth() === newShift.getMonth() &&
+          prevShift.getFullYear() === newShift.getFullYear()
+        ) {
+          return false;
         }
-        return user;
-      })
-    });
+        return true;
+      });
+
+      getuser = [...getuser, ...data.event];
+      await this.setState({
+        userdata: this.state.userdata.map(user => {
+          if (user.name === data.name) {
+            user.data = getuser;
+            return user;
+          }
+          return user;
+        })
+      });
+    } else {
+      await this.setState({
+        userdata: this.state.userdata.map(user => {
+          if (user.name === data.name) {
+            user.data = [];
+            return user;
+          }
+          return user;
+        })
+      });
+    }
   };
   //////////////////////////////////////////////////////
   clickedCell = async (user, day) => {
-    const clickedDate = this.date(day);
-    var event = user.data.filter(shift => {
-      return shift.from.getDate() === clickedDate;
-    });
-    var data = {
-      name: user.name,
-      date: clickedDate,
-      month: this.state.month,
-      year: this.state.year,
-      event: event
-    };
-    await this.setState({ shiftData: data });
+    const clickedDate = this.date(day).date;
+    const clickedMonth = this.date(day).month;
+    const clickedYear = this.date(day).year;
+
+    const newDate = new Date(clickedYear, clickedMonth, clickedDate);
+
+    if (newDate >= new Date().setHours(0, 0, 0, 0)) {
+      var event = user.data.filter(shift => {
+        return shift.from.getDate() === clickedDate;
+      });
+      var data = {
+        name: user.name,
+        date: clickedDate,
+        month: this.state.month,
+        year: this.state.year,
+        event: event
+      };
+      await this.setState({ shiftData: data });
+    } else {
+      this.setState({ open: false });
+      return window.alert("Sorry You cannot edit past schedules");
+    }
   };
 
   render() {
@@ -216,8 +250,7 @@ class Schedule extends Component {
         )}
         <div>
           <div style={{ display: "flex", justifyContent: "center" }}>
-            {monthName[month]}
-            &nbsp;{year}
+            {year}
           </div>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <Button variant="contained" onClick={this.backwardDate}>
@@ -243,16 +276,16 @@ class Schedule extends Component {
             borderCollapse: "collapse"
           }}
         >
-          <tbody>
+          <thead>
             <tr
               style={{
                 border: "1px solid black",
                 borderCollapse: "collapse"
               }}
             >
-              <td style={{ display: "flex", justifyContent: "center" }}>
+              <th style={{ display: "flex", justifyContent: "center" }}>
                 STAFF
-              </td>
+              </th>
               {weekdays.map((day, j) => (
                 <th
                   key={j}
@@ -261,31 +294,41 @@ class Schedule extends Component {
                     borderCollapse: "collapse"
                   }}
                 >
-                  {day}
-                  <br />
-                  {todaysDate === this.date(j) &&
+                  {todaysDate &&
+                  todaysDate === this.date(j).date &&
                   month === todaysMonth &&
                   year === todaysYear ? (
-                    <div style={{ background: "grey" }}>{this.date(j)}</div>
+                    <div style={{ background: "grey" }}>
+                      {day}
+                      <br />
+                      {this.date(j) && this.date(j).date}
+                      <br />
+                      {this.date(j) && this.state.monthName[this.date(j).month]}
+                    </div>
                   ) : (
-                    <div>{this.date(j)}</div>
+                    <div>
+                      {day}
+                      <br />
+                      {this.date(j) && this.date(j).date}
+                      <br />
+                      {this.date(j) && this.state.monthName[this.date(j).month]}
+                    </div>
                   )}
-                  {/* {monthName[month]} */}
                 </th>
               ))}
             </tr>
-            {/*///////////////////////////*/}
-
+          </thead>
+          {/*///////////////////////////*/}
+          <tbody>
             {userdata.map((user, i) => (
               <tr key={i}>
                 <td
-                  key={i}
                   style={{
                     // display: "flex",
                     justifyContent: "center",
                     border: "1px solid black",
                     borderCollapse: "collapse",
-                    width: "20px"
+                    width: "50px"
                   }}
                 >
                   <img
@@ -313,11 +356,12 @@ class Schedule extends Component {
                     }}
                   >
                     {user.data.length > 0 &&
-                      user.data.map(shift =>
-                        shift.from.getDate() === this.date(k) &&
+                      user.data.map((shift, p) =>
+                        shift.from.getDate() === this.date(k).date &&
                         shift.from.getMonth() === month &&
                         shift.from.getFullYear() === year ? (
                           <div
+                            key={p}
                             style={{
                               display: "flex",
                               justifyContent: "center",

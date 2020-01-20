@@ -33,10 +33,10 @@ class EventModal extends Component {
       });
     }
   };
-  shiftTimeFrom = () => {};
-  shiftTimeTo = () => {};
+  F = () => {};
+  T = () => {};
 
-  editPrevShiftFrom = async (time, i) => {
+  editShiftFrom = async (time, i) => {
     await this.setState({
       event: this.state.event.map((shift, j) => {
         if (i === j) {
@@ -47,7 +47,7 @@ class EventModal extends Component {
       })
     });
   };
-  editPrevShiftTo = async (time, i) => {
+  editShiftTo = async (time, i) => {
     await this.setState({
       event: this.state.event.map((shift, j) => {
         if (i === j) {
@@ -65,6 +65,16 @@ class EventModal extends Component {
         ...this.state.event,
         { from: this.state.displayDate, to: this.state.displayDate }
       ]
+    });
+  };
+  deleteEvent = async i => {
+    await this.setState({
+      event: this.state.event.filter((shift, j) => {
+        if (i !== j) {
+          return true;
+        }
+        return false;
+      })
     });
   };
   render() {
@@ -137,33 +147,47 @@ class EventModal extends Component {
             <div className="max-w-md p-5">
               {this.state.event.length > 0
                 ? this.state.event.map((event, i) => (
-                    <MuiPickersUtilsProvider utils={DateFnsUtils} key={i}>
-                      <KeyboardTimePicker
-                        margin="normal"
-                        id="time-picker"
-                        label="SHIFT START"
-                        inputVariant="outlined"
-                        value={event.from}
-                        onChange={this.shiftTimeFrom}
-                        onAccept={time => this.editPrevShiftFrom(time, i)}
-                        KeyboardButtonProps={{
-                          "aria-label": "change time"
-                        }}
-                      />
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between"
+                      }}
+                    >
+                      <MuiPickersUtilsProvider utils={DateFnsUtils} key={i}>
+                        <KeyboardTimePicker
+                          margin="normal"
+                          id="time-picker"
+                          label="SHIFT START"
+                          inputVariant="outlined"
+                          value={event.from}
+                          onChange={this.F}
+                          onAccept={time => this.editShiftFrom(time, i)}
+                          KeyboardButtonProps={{
+                            "aria-label": "change time"
+                          }}
+                        />
 
-                      <KeyboardTimePicker
-                        margin="normal"
-                        id="time-picker"
-                        label="SHIFT END"
-                        inputVariant="outlined"
-                        value={event.to}
-                        onChange={this.shiftTimeTo}
-                        onAccept={time => this.editPrevShiftTo(time, i)}
-                        KeyboardButtonProps={{
-                          "aria-label": "change time"
-                        }}
-                      />
-                    </MuiPickersUtilsProvider>
+                        <KeyboardTimePicker
+                          margin="normal"
+                          id="time-picker"
+                          label="SHIFT END"
+                          inputVariant="outlined"
+                          value={event.to}
+                          onChange={this.T}
+                          onAccept={time => this.editShiftTo(time, i)}
+                          KeyboardButtonProps={{
+                            "aria-label": "change time"
+                          }}
+                        />
+                      </MuiPickersUtilsProvider>
+
+                      <button
+                        onClick={e => this.deleteEvent(i)}
+                        style={{ padding: "10px" }}
+                      >
+                        X
+                      </button>
+                    </div>
                   ))
                 : ""}
             </div>
@@ -186,7 +210,7 @@ class EventModal extends Component {
               </Button>
 
               <Button
-                disabled={this.state.event.length > 0 ? false : true}
+                // disabled={this.state.event.length > 0 ? false : true}
                 variant="contained"
                 color="primary"
                 className={"m-10"}
